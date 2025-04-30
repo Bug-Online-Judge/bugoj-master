@@ -14,19 +14,32 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(id uint, username string, role string) string {
-	exp := time.Now().Add(time.Hour * 72)
-	claims := &Claims{
+func GenerateTokens(id uint, username, role string) (accessToken, refreshToken string) {
+	// Access token: 8小时
+	atExp := time.Now().Add(8 * time.Hour)
+	// Refresh token: 2天
+	rtExp := time.Now().Add(2 * 24 * time.Hour)
+
+	accessClaims := &Claims{
 		UserID:   id,
 		Username: username,
 		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(exp),
+			ExpiresAt: jwt.NewNumericDate(atExp),
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, _ := token.SignedString(jwtKey)
-	return signed
+	refreshClaims := &Claims{
+		UserID:   id,
+		Username: username,
+		Role:     role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(rtExp),
+		},
+	}
+
+	accessToken, _ = jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString(jwtKey)
+	refreshToken, _ = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString(jwtKey)
+	return
 }
 
 func ParseToken(tokenStr string) (*Claims, error) {
