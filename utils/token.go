@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bugoj-master/global"
+	"bugoj-master/model"
 	"context"
 	"fmt"
 	"time"
@@ -13,23 +14,37 @@ import (
 var ctx = context.Background()
 
 type Claims struct {
-	UserID   uint   `json:"user_id"`
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	UserID   uint     `json:"user_id"`
+	Username string   `json:"username"`
+	Role     []string `json:"roles"`
 	jwt.RegisteredClaims
 }
 
 // GenerateTokens 返回 accessToken、refreshToken、refreshKey
-func GenerateTokens(id uint, username, role string) (accessToken, refreshToken, refreshKey string) {
+func GenerateTokens(id uint, username string, roles interface{}) (accessToken, refreshToken, refreshKey string) {
 	// Access token: 8小时
 	atExp := time.Now().Add(8 * time.Hour)
 	// Refresh token: 2天
 	rtExp := time.Now().Add(48 * time.Hour)
 
+	// Convert []Role to []string
+	var roleNames []string
+	switch v := roles.(type) {
+	case []model.Role:
+		roleNames = make([]string, len(v))
+		for i, r := range v {
+			roleNames[i] = r.Name
+		}
+	case []string:
+		roleNames = v
+	default:
+		roleNames = []string{}
+	}
+
 	accessClaims := &Claims{
 		UserID:   id,
 		Username: username,
-		Role:     role,
+		Role:     roleNames,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(atExp),
 		},
@@ -37,7 +52,7 @@ func GenerateTokens(id uint, username, role string) (accessToken, refreshToken, 
 	refreshClaims := &Claims{
 		UserID:   id,
 		Username: username,
-		Role:     role,
+		Role:     roleNames,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(rtExp),
 		},

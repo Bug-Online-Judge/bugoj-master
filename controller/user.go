@@ -4,6 +4,7 @@ import (
 	"bugoj-master/config"
 	"bugoj-master/model"
 	"bugoj-master/utils"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,7 @@ func Register(c *gin.Context) {
 		utils.Fail(c, 4001, "invalid input")
 		return
 	}
-	
+
 	var existing model.User
 	if err := config.DB.Where("username = ? OR email = ?", req.Username, req.Email).First(&existing).Error; err == nil {
 		utils.Fail(c, 4002, "username or email already exists")
@@ -29,11 +30,18 @@ func Register(c *gin.Context) {
 	}
 
 	hashedPwd, _ := utils.HashPassword(req.Password)
+
+	var userRole model.Role
+	if err := config.DB.FirstOrCreate(&userRole, model.Role{Name: "user"}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to ensure default role"})
+		return
+	}
+
 	user := model.User{
 		Username:  req.Username,
 		Email:     req.Email,
 		Password:  hashedPwd,
-		Role:      "user",
+		Roles:     []model.Role{userRole},
 		CreatedAt: time.Now(),
 	}
 

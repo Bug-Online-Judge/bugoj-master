@@ -13,6 +13,20 @@ import (
 
 var DB *gorm.DB
 
+func initRoles(db *gorm.DB) error {
+	var defaultRoles = []model.Role{
+		{Name: "user"},
+		{Name: "admin"},
+	}
+	for _, role := range defaultRoles {
+		if err := (db.FirstOrCreate(&model.Role{}, model.Role{Name: role.Name})).
+			Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func InitDB() {
 	err := godotenv.Load()
 	if err != nil {
@@ -40,4 +54,9 @@ func InitDB() {
 	}
 
 	DB = db
+
+	// Initialize roles in the database
+	if err := initRoles(db); err != nil {
+		log.Fatalf("Failed to initialize roles: %v", err)
+	}
 }

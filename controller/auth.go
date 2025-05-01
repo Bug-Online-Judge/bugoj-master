@@ -21,6 +21,7 @@ func Login(c *gin.Context) {
 
 	var user model.User
 	if err := config.DB.
+		Preload("Roles").
 		Where("username = ? OR email = ?", req.Username, req.Username).
 		First(&user).Error; err != nil {
 		utils.Fail(c, 4002, "user not found")
@@ -32,7 +33,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, refreshKey := utils.GenerateTokens(user.ID, user.Username, user.Role)
+	accessToken, refreshToken, refreshKey := utils.GenerateTokens(user.ID, user.Username, user.Roles)
 
 	c.SetCookie("refresh_token", refreshToken, 3600*48, "/", "localhost", false, true)
 	c.SetCookie("refresh_key", refreshKey, 3600*48, "/", "localhost", false, true)
