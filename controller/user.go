@@ -60,3 +60,28 @@ func Me(c *gin.Context) {
 		utils.Fail(c, 401, "unauthorized")
 	}
 }
+
+func UserProfile(c *gin.Context) {
+	username := c.Query("username")
+	email := c.Query("email")
+
+	var user model.User
+	var err error
+
+	switch {
+	case username != "":
+		err = config.DB.Where("username = ?", username).First(&user).Error
+	case email != "":
+		err = config.DB.Where("email = ?", email).First(&user).Error
+	default:
+		utils.Fail(c, 1001, "username or email required")
+		return
+	}
+
+	if err != nil {
+		utils.Fail(c, 1002, "user not found")
+		return
+	}
+
+	utils.Success(c, model.ToUserDTO(user))
+}
