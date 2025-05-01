@@ -1,11 +1,16 @@
 package utils
 
 import (
-	"github.com/golang-jwt/jwt/v5"
+	"bugoj-master/global"
+	"context"
+	"fmt"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
-var jwtKey = []byte("secret_key")
+var ctx = context.Background()
 
 type Claims struct {
 	UserID   uint   `json:"user_id"`
@@ -14,11 +19,12 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateTokens(id uint, username, role string) (accessToken, refreshToken string) {
+// GenerateTokens 返回 accessToken、refreshToken、refreshKey
+func GenerateTokens(id uint, username, role string) (accessToken, refreshToken, refreshKey string) {
 	// Access token: 8小时
 	atExp := time.Now().Add(8 * time.Hour)
 	// Refresh token: 2天
-	rtExp := time.Now().Add(2 * 24 * time.Hour)
+	rtExp := time.Now().Add(48 * time.Hour)
 
 	accessClaims := &Claims{
 		UserID:   id,
@@ -37,18 +43,35 @@ func GenerateTokens(id uint, username, role string) (accessToken, refreshToken s
 		},
 	}
 
-	accessToken, _ = jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString(jwtKey)
-	refreshToken, _ = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString(jwtKey)
-	return
+	accessToken, _ = jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString(global.JWTKey)
+	refreshToken, _ = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString(global.JWTKey)
+
+	// 构造 refresh key 并写入 Redis
+	refreshKey = fmt.Sprintf("refresh:%d:%s", id, uuid.New().String())
+	SaveRefreshTokenToRedis(refreshKey, 48*time.Hour)
+
+	return accessToken, refreshToken, refreshKey
 }
 
 func ParseToken(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
+		return global.JWTKey, nil
 	})
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 		return claims, nil
 	} else {
 		return nil, err
 	}
+}
+
+func SaveRefreshTokenToRedis(key string, ttl time.Duration) {
+	global.Redis.Set(ctx, key, 1, ttl)
+}
+
+func DeleteRefreshTokenFromRedis(key string) {
+	global.Redis.Del(ctx, key)
+}
+
+func RefreshTokenExists(key string) bool {
+	return global.Redis.Exists(ctx, key).Val() == 1
 }

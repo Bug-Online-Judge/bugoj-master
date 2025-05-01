@@ -10,6 +10,7 @@ import (
 func main() {
 	config.InitDB()
 	config.InitRedis()
+	config.InitJWT()
 
 	r := gin.Default()
 	r.Use(middleware.CORSMiddleware())

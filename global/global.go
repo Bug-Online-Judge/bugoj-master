@@ -1,5 +1,12 @@
 package global
 
-import "github.com/redis/go-redis/v9"
+import (
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
+)
 
-var Redis *redis.Client
+var (
+	DB     *gorm.DB
+	Redis  *redis.Client
+	JWTKey []byte
+)

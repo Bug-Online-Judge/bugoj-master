@@ -9,7 +9,6 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	r.POST("/api/register", controller.Register)
 	r.POST("/api/login", controller.Login)
-	r.POST("/api/refresh", controller.RefreshToken)
 
 	auth := r.Group("/api")
 	auth.Use(middleware.AuthMiddleware())
