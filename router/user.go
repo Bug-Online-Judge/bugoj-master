@@ -14,5 +14,6 @@ func SetupRoutes(r *gin.Engine) {
 	auth.Use(middleware.AuthMiddleware())
 	{
 		auth.GET("/me", controller.Me)
+		auth.GET("/user/profile", controller.UserProfile)
 	}
 }
